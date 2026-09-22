@@ -1,0 +1,49 @@
+x-base-service: &service-template
+  image: flexivapps:v1.0
+  volumes:
+    - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    - ${XAUTHORITY}:/tmp/host.xauth:ro
+  environment:
+    - DISPLAY=${DISPLAY}
+    - XAUTHORITY=/tmp/host.xauth
+  cap_add:
+    - SYS_ADMIN
+  devices:
+    - /dev/fuse
+  networks:
+    - flexiv_apps_bridge
+
+
+services:
+  ui:
+    <<: *service-template
+    container_name: UIApp
+    entrypoint: ["/opt/flexiv/start-flexiv-element"]
+
+  rca1:
+    <<: *service-template
+    container_name: RCA1
+    environment:
+      - DISPLAY=${DISPLAY}
+      - XAUTHORITY=/tmp/host.xauth
+      - RCA_ID=RCA111
+    entrypoint: ["/opt/flexiv/start-rca"]
+
+  rca2:
+    <<: *service-template
+    container_name: RCA2
+    environment:
+      - DISPLAY=${DISPLAY}
+      - XAUTHORITY=/tmp/host.xauth
+      - RCA_ID=RCA222
+    entrypoint: ["/opt/flexiv/start-rca"]
+
+
+networks:
+  flexiv_apps_bridge:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.20.30.0/24
+          gateway: 10.20.30.1
