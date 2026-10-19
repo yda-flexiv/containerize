@@ -82,6 +82,9 @@ replacement directory.
 SELinux separation is disabled for these containers so they can use the WSLg
 system socket without relabeling it. Do not add `:z` or `:Z` to this mount. The
 containers retain their separate IPC namespaces and private `/tmp` directories.
+The UI service also adds `NET_RAW` for its ping-based robot address checks;
+Podman's default capability set omits it. See the
+[upstream defaults](https://github.com/containers/common/blob/main/pkg/config/default.go).
 
 The Compose file creates the bridge and assigns container IPs. Windows routing
 and forwarding to that subnet still need separate host configuration. Windows
@@ -133,6 +136,51 @@ does not establish those runtime results.
   `FVR_ENABLE_LICENSE=OFF`; matters if licensing is enabled.
 
 ## Troubleshooting
+
+### WSLg UI cannot discover the RCAs
+
+`/usr/bin/ping: Operation not permitted` is a local permission error, not evidence
+that the destination IP is unreachable. The WSLg variant grants `NET_RAW` to
+`ui`; after updating an older configuration, recreate that service to apply the
+capability (a container restart alone does not apply it):
+
+```powershell
+podman compose -f .\compose.wslg.yaml up -d --force-recreate ui
+```
+
+Check each running container's actual network membership and current IP before
+testing connectivity:
+
+```powershell
+podman inspect UIApp RCA1 RCA2 --format '{{.Name}} {{json .NetworkSettings.Networks}}'
+```
+
+All three must list the same bridge network. A prefix such as
+`containerize_flexiv_apps_bridge` is normal: Compose normally prefixes the network
+with the project name. The Podman Desktop "unused" label alone does not establish
+the running containers' network membership. If it conflicts with the container
+inspection, verify that Desktop and the CLI are viewing the same machine and
+rootful/rootless connection:
+
+```powershell
+podman system connection list
+podman network inspect containerize_flexiv_apps_bridge
+```
+
+Substitute the actual network name if different. Do not delete the network based
+only on the Desktop label. Then test both current RCA IPs from the UI container;
+these are examples and must match the inspection output:
+
+```powershell
+podman exec UIApp ping -n -c 2 -W 2 10.20.30.6
+podman exec UIApp ping -n -c 2 -W 2 10.20.30.5
+```
+
+Successful ping establishes ICMP reachability, not discovery. If both succeed
+but the UI still finds no robots, inspect RCA startup/network logs and multicast
+discovery traffic next. Windows-to-container routes are not involved in this
+container-to-container test. The capability change was checked with a local Linux
+UI-image ping reproduction; discovery on the Windows target remains unverified.
 
 Logs: `/opt/flexiv/RobotControlApp-Sim/log/RobotControlApp_*.log` inside the
 container.

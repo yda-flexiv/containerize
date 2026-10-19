@@ -28,6 +28,11 @@ services:
   ui:
     <<: *service-template
     container_name: UIApp
+    # Podman does not grant NET_RAW by default. The UI's discovery filter
+    # invokes ping; retain SYS_ADMIN from the template for FUSE as well.
+    cap_add:
+      - SYS_ADMIN
+      - NET_RAW
     entrypoint: ["/opt/flexiv/start-flexiv-element"]
 
   rca1:
