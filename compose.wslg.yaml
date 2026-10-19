@@ -1,0 +1,56 @@
+# Standalone WSLg variant: podman compose -f compose.wslg.yaml up
+# Bind sources are paths inside podman-machine-default, not on Windows.
+x-wslg-environment: &wslg-environment
+  DISPLAY: "${WSLG_DISPLAY:-:0}"
+  QT_QPA_PLATFORM: xcb
+
+x-base-service: &service-template
+  image: flexivapps:v1.0
+  volumes:
+    - type: bind
+      source: /mnt/wslg/.X11-unix
+      target: /tmp/.X11-unix
+      read_only: true
+      bind:
+        create_host_path: false
+  environment: *wslg-environment
+  # Share the WSLg system socket without relabeling it with :z or :Z.
+  security_opt:
+    - label=disable
+  cap_add:
+    - SYS_ADMIN
+  devices:
+    - /dev/fuse
+  networks:
+    - flexiv_apps_bridge
+
+services:
+  ui:
+    <<: *service-template
+    container_name: UIApp
+    entrypoint: ["/opt/flexiv/start-flexiv-element"]
+
+  rca1:
+    <<: *service-template
+    container_name: RCA1
+    environment:
+      <<: *wslg-environment
+      RCA_ID: RCA111
+    entrypoint: ["/opt/flexiv/start-rca"]
+
+  rca2:
+    <<: *service-template
+    container_name: RCA2
+    environment:
+      <<: *wslg-environment
+      RCA_ID: RCA222
+    entrypoint: ["/opt/flexiv/start-rca"]
+
+networks:
+  flexiv_apps_bridge:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.20.30.0/24
+          gateway: 10.20.30.1
