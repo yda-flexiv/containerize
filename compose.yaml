@@ -23,6 +23,12 @@ services:
   rca1:
     <<: *service-template
     container_name: RCA1
+    # Each RCA pins its controller threads to host CPUs 2/3/4 (SchedConfig.hpp).
+    # Give every instance a disjoint slice to avoid contention, e.g.:
+    #   cpuset: "0-4"      # rca1
+    #   cpuset: "5-9"      # rca2
+    # Set RCA_GUI_DISABLE=1 (env below) to run headless, then the X11 mount and
+    # DISPLAY/XAUTHORITY variables are no longer needed for this service.
     environment:
       - DISPLAY=${DISPLAY}
       - XAUTHORITY=/tmp/host.xauth
@@ -32,6 +38,7 @@ services:
   rca2:
     <<: *service-template
     container_name: RCA2
+    # See the note on rca1: use a different cpuset than rca1.
     environment:
       - DISPLAY=${DISPLAY}
       - XAUTHORITY=/tmp/host.xauth

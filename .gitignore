@@ -14,3 +14,4 @@ yarn-error.log*
 
 packages/
 .agent-shell/
+diagnostics/
