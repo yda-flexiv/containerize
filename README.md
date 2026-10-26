@@ -139,27 +139,10 @@ does not establish those runtime results.
 
 ### WSLg UI cannot discover the RCAs
 
-To collect the checks below in one report, run this once from PowerShell in this
-directory (replace the optional address with your Windows machine's address):
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\diagnose-wslg.ps1 -WindowsAddress 10.21.1.39
-```
-
-Attach the generated `diagnostics\wslg-*.txt` file to the chat. The script looks up
-the current container IPs, checks loopback and UI-to-RCA ping, and collects ARP,
-routes, capabilities, multicast memberships, recent logs, machine firewall rules,
-and Windows routes. It uses the selected Podman connection and discovers the
-actual project-prefixed network names. The supplied Windows address is recorded
-as context, not used as a guessed routing gateway.
-
-The script does not restart containers or change network configuration. It
-continues collecting when an individual probe fails; missing optional tools or
-sudo permissions are recorded in the report. Machine probes default to
-`podman-machine-default`; use `-MachineName` if needed, or `-UIContainer` and
-`-RCAContainers` for different container names. Raw container environment variables
-are not included in the report. Execution-policy bypass applies only to this
-PowerShell invocation.
+Follow the [Windows / WSL2 network setup and troubleshooting guide](windows-network-setup.md)
+to check the Podman connection, container addresses, bridge forwarding, and
+Windows routes, and apply the relevant fixes. The guide covers rootful Podman
+with WSL2 NAT networking; run its commands in Windows PowerShell.
 
 `/usr/bin/ping: Operation not permitted` is a local permission error, not evidence
 that the destination IP is unreachable. The WSLg variant grants `NET_RAW` to
